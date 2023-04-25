@@ -8,7 +8,7 @@ st.title('Gitcoin Grants Stack')
 chain_id = '1'
 
 
-@st.cache_data
+@st.cache_data(ttl=1800)
 def load_chain_data(chain_id):
     
     chain_url = 'https://indexer-grants-stack.gitcoin.co/data/' + chain_id + '/rounds.json'
@@ -36,7 +36,7 @@ def load_chain_data(chain_id):
     except: 
         return pd.DataFrame()
 
-@st.cache_data
+@st.cache_data(ttl=1800)
 def load_round_data(round_id):
     # prepare the URLs
     votes_url = 'https://indexer-grants-stack.gitcoin.co/data/1/rounds/' + round_id + '/votes.json'
