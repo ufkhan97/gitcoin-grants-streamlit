@@ -18,18 +18,19 @@ def load_chain_data(chain_id):
             chain_data = response.json()
             rounds = []
             for round in chain_data:
-                round_data = {
-                    'round_id': round['id'],
-                    'name': round['metadata']['name'],
-                    'amountUSD': round['amountUSD'],
-                    'votes': round['votes'],
-                    #'description': round['metadata']['description'] if 'description' in round['metadata'] else '',
-                    #'matchingFundsAvailable': round['metadata']['matchingFunds']['matchingFundsAvailable'] if 'matchingFunds' in round['metadata'] else '',
-                    #'matchingCap': round['metadata']['matchingFunds']['matchingCap'] if 'matchingFunds' in round['metadata'] else '',
-                    'roundStartTime': datetime.datetime.utcfromtimestamp(int(round['roundStartTime'])), # create a datetime object from the timestamp in UTC time
-                    'roundEndTime': datetime.datetime.utcfromtimestamp(int(round['roundEndTime']))
-                }
-                rounds.append(round_data)
+                if round['metadata'] is not None:
+                    round_data = {
+                        'round_id': round['id'],
+                        'name': round['metadata']['name'],
+                        'amountUSD': round['amountUSD'],
+                        'votes': round['votes'],
+                        #'description': round['metadata']['description'] if 'description' in round['metadata'] else '',
+                        #'matchingFundsAvailable': round['metadata']['matchingFunds']['matchingFundsAvailable'] if 'matchingFunds' in round['metadata'] else '',
+                        #'matchingCap': round['metadata']['matchingFunds']['matchingCap'] if 'matchingFunds' in round['metadata'] else '',
+                        'roundStartTime': datetime.datetime.utcfromtimestamp(int(round['roundStartTime'])), # create a datetime object from the timestamp in UTC time
+                        'roundEndTime': datetime.datetime.utcfromtimestamp(int(round['roundEndTime']))
+                    }
+                    rounds.append(round_data)
             df = pd.DataFrame(rounds)
             return df 
     except: 
@@ -87,6 +88,7 @@ def filter_chain_data(chain_data):
 
 data_load_state = st.text('Loading data...')
 chain_data = load_chain_data(chain_id)
+print(chain_data)
 chain_data = filter_chain_data(chain_data)
 #round_data = load_round_data(round_id)
 data_load_state.text("Done! (using st.cache_data)")
@@ -138,4 +140,3 @@ st.write(projects_data[['title', 'amountUSD', 'votes', 'uniqueContributors']])
 # graph of the amountUSD grouped by name, and sorted descending
 st.subheader('Amount USD by Project')
 st.bar_chart(projects_data.groupby('title')['amountUSD'].sum().sort_values(ascending=False), use_container_width=True)
-
