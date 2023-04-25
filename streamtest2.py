@@ -88,7 +88,6 @@ def filter_chain_data(chain_data):
 
 data_load_state = st.text('Loading data...')
 chain_data = load_chain_data(chain_id)
-print(chain_data)
 chain_data = filter_chain_data(chain_data)
 #round_data = load_round_data(round_id)
 data_load_state.text("Done! (using st.cache_data)")
@@ -113,8 +112,6 @@ option = st.selectbox(
     'Select Round',
     chain_data['name'])
 
-st.write('You selected:', option)
-
 data_load_state = st.text('Loading data...')
 # load round data for the option selected by looking up the round id with that name in the chain_data df
 round_id = chain_data[chain_data['name'] == option]['round_id'].values[0]
@@ -122,6 +119,7 @@ round_data, projects_data = load_round_data(round_id)
 data_load_state.text("Done! (using st.cache_data)")
 
 df = pd.DataFrame(round_data)
+projects_data = projects_data[projects_data['status'] == 'APPROVED']
 
 col1, col2, col3 = st.columns(3)
 total_usd = df['amountUSD'].sum()
@@ -132,6 +130,9 @@ total_by_donor = df.groupby('voter')['amountUSD'].sum()
 nonZero_donors = (total_by_donor > 0).sum()
 col3.metric('Total Donors',  '{:,.0f}'.format(nonZero_donors))
 
+col4, col5, col6 = st.columns(3)
+#column 4 metric is number of projects in projects_data
+col4.metric('Total Projects',  '{:,.0f}'.format(len(projects_data)))
 
 #write title and amountUSD from projects_data
 st.subheader('Project Details')
