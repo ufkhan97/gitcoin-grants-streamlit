@@ -4,11 +4,11 @@ import numpy as np
 import requests
 import datetime
 
-st.title('Gitcoin Grants Stack')
+st.title('Gitcoin Beta Rounds')
 chain_id = '1'
 
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=60)
 def load_chain_data(chain_id):
     
     chain_url = 'https://indexer-grants-stack.gitcoin.co/data/' + chain_id + '/rounds.json'
@@ -32,11 +32,13 @@ def load_chain_data(chain_id):
                     }
                     rounds.append(round_data)
             df = pd.DataFrame(rounds)
+            # Filter to live now and active rounds with votes > 0
+            df = df[(df['votes'] > 0) & (df['roundStartTime'] < datetime.datetime.now()) & (df['roundEndTime'] > datetime.datetime.now())]
             return df 
     except: 
         return pd.DataFrame()
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=60)
 def load_round_data(round_id):
     # prepare the URLs
     votes_url = 'https://indexer-grants-stack.gitcoin.co/data/1/rounds/' + round_id + '/votes.json'
@@ -79,24 +81,20 @@ def load_round_data(round_id):
     except:
         return pd.DataFrame()
     
-    # Takes a dataframe as input and filters to only rows where the votes > 0 and the current time is between the roundStartTime and roundEndTime
-    # Then drops all columns besides name, votes, and amountUSD and sorts by votes
-def filter_chain_data(chain_data):
-    df = chain_data[(chain_data['votes'] > 0) & (chain_data['roundStartTime'] < datetime.datetime.now()) & (chain_data['roundEndTime'] > datetime.datetime.now())]
-    df = df[['name', 'votes', 'amountUSD', 'round_id']].sort_values(by=['votes'], ascending=False)
-    return df
+
 
 data_load_state = st.text('Loading data...')
 chain_data = load_chain_data(chain_id)
-chain_data = filter_chain_data(chain_data)
 #round_data = load_round_data(round_id)
-data_load_state.text("Done! (using st.cache_data)")
+data_load_state.text("Done!")
 
 
 
 
 st.subheader('Live Rounds:')
-st.write(chain_data)
+# filter chain_data to name, votes, amountUSD
+chain_data_display = chain_data[['name', 'votes', 'amountUSD']]
+st.write(chain_data_display)
 
 # graph of the amountUSD grouped by name, and sorted descending
 st.subheader('Amount USD by Round')
@@ -116,7 +114,7 @@ data_load_state = st.text('Loading data...')
 # load round data for the option selected by looking up the round id with that name in the chain_data df
 round_id = chain_data[chain_data['name'] == option]['round_id'].values[0]
 round_data, projects_data = load_round_data(round_id)
-data_load_state.text("Done! (using st.cache_data)")
+data_load_state.text("Done!")
 
 df = pd.DataFrame(round_data)
 projects_data = projects_data[projects_data['status'] == 'APPROVED']
