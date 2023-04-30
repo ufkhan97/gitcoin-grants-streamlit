@@ -164,9 +164,6 @@ fig = get_contributions_by_round_bar_chart(chain_data, color_map)
 col2.plotly_chart(fig, use_container_width=True)
 chain_data_display = chain_data[['name', 'votes', 'amountUSD']]
 
-# write table to screen
-st.write(chain_data_display)
-
 # selectbox to select the round
 option = st.selectbox(
     'Select Round',
@@ -248,5 +245,5 @@ dfv_count = dfv.groupby([dfv['utc_time'].dt.strftime('%d-%m-%Y %H')])['id'].nuni
 dfv_count.index = pd.to_datetime(dfv_count.index)
 # fill in missing hours with 0
 dfv_count = dfv_count.reindex(pd.date_range(start=dfv_count.index.min(), end=dfv_count.index.max(), freq='H'), fill_value=0)
-fig = px.bar(dfv_count, x=dfv_count.index, y='id', labels={'id': 'Number of Votes'}, title='Votes by Hour and Day of utc_time')
+fig = px.bar(dfv_count, x=dfv_count.index, y='id', labels={'id': 'Number of Votes'}, title='Number of Contributions over Time')
 st.plotly_chart(fig, use_container_width=True)
