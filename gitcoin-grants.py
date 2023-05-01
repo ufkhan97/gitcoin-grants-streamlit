@@ -11,6 +11,7 @@ st.set_page_config(
     page_title="Gitcoin Beta Rounds",
     page_icon="📊",
     layout="wide",
+
 )
 
 st.title('Gitcoin Beta Rounds')
