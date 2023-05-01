@@ -165,6 +165,7 @@ fig = get_contributions_by_round_bar_chart(chain_data, color_map)
 col2.plotly_chart(fig, use_container_width=True)
 chain_data_display = chain_data[['name', 'votes', 'amountUSD']]
 
+st.subheader("Round Details")
 # selectbox to select the round
 option = st.selectbox(
     'Select Round',
