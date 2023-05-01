@@ -232,7 +232,7 @@ def create_block_times(starting_blockNumber, ending_blockNumber, starting_blockT
     # create a new column called utc_time and use the starting_blockTime as the value for the first starting_blockNumber
     df['utc_time'] = starting_blockTime
     # as the blockNumber increases by 1, add 12.133 seconds to the utc_time
-    df['utc_time'] = pd.to_datetime(df['utc_time']) + pd.to_timedelta(12.133*(df['blockNumber'] - starting_blockNumber), unit='s')
+    df['utc_time'] = pd.to_datetime(df['utc_time']) + pd.to_timedelta(12.13*(df['blockNumber'] - starting_blockNumber), unit='s')
     return df
 
 dfb = create_block_times(starting_blockNumber, ending_blockNumber, starting_blockTime)
@@ -240,7 +240,7 @@ dfb = create_block_times(starting_blockNumber, ending_blockNumber, starting_bloc
 dfv = pd.merge(dfv, dfb, how='left', on='blockNumber')
 # graph of the amountUSD grouped by utc_time hour
 #st.subheader('Amount USD by Hour and day of utc_time')
-dfv_count = dfv.groupby([dfv['utc_time'].dt.strftime('%d-%m-%Y %H')])['id'].nunique()
+dfv_count = dfv.groupby([dfv['utc_time'].dt.strftime('%m-%d-%Y %H')])['id'].nunique()
 # set the index to be the utc_time column
 dfv_count.index = pd.to_datetime(dfv_count.index)
 # fill in missing hours with 0
