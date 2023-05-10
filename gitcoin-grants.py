@@ -47,7 +47,7 @@ def load_chain_data(chain_id):
                     rounds.append(round_data)
             df = pd.DataFrame(rounds)
             # Filter to live now and active rounds with votes > 0
-            df = df[(df['votes'] > 0) & (df['roundStartTime'] < datetime.datetime.now()) & (df['roundEndTime'] > datetime.datetime.now())]
+            df = df[(df['votes'] > 0) & (df['roundStartTime'] < datetime.datetime.now()) & (df['roundEndTime'] > (datetime.datetime.now() - datetime.timedelta(weeks=2)))]
             return df 
     except: 
         return pd.DataFrame()
