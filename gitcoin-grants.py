@@ -23,7 +23,7 @@ st.write('👉 Visit [grants.gitcoin.co](https://grants.gitcoin.co) to donate.')
 chain_id = '1'
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3000)
 def load_chain_data(chain_id):
     chain_url = 'https://indexer-grants-stack.gitcoin.co/data/' + chain_id + '/rounds.json'
     try:
@@ -46,13 +46,16 @@ def load_chain_data(chain_id):
                     }
                     rounds.append(round_data)
             df = pd.DataFrame(rounds)
-            # Filter to live now and active rounds with votes > 0
-            df = df[(df['votes'] > 0) & (df['roundStartTime'] < datetime.datetime.now()) & (df['roundEndTime'] > (datetime.datetime.now() - datetime.timedelta(weeks=2)))]
+            # Filter to beta rounds
+            start_time = datetime.datetime(2023, 4, 26, 15, 0, 0)
+            end_time = datetime.datetime(2023, 5, 9, 23, 59, 0)
+            # filter to only include rounds with votes > 0 and roundStartTime <= start_time and roundEndTime == end_time
+            df = df[(df['votes'] > 0) & (df['roundStartTime'] <= start_time) & (df['roundEndTime'] == end_time)]
             return df 
     except: 
         return pd.DataFrame()
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3000)
 def load_round_projects_data(round_id):
     # prepare the URLs
     projects_url = 'https://indexer-grants-stack.gitcoin.co/data/1/rounds/' + round_id + '/projects.json'
@@ -87,7 +90,7 @@ def load_round_projects_data(round_id):
     except:
         return pd.DataFrame()
     
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3000)
 def load_round_votes_data(round_id):
     votes_url = 'https://indexer-grants-stack.gitcoin.co/data/1/rounds/' + round_id + '/votes.json'
     try:
