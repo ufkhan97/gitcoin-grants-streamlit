@@ -22,7 +22,16 @@ st.write('You can donate to projects in the Round from August 15th 2023 12:00 UT
 st.write('👉 Visit [grants.gitcoin.co](https://grants.gitcoin.co) to donate.')
 
 # Helper function to load data from URLs
-@st.cache_data(ttl=900)
+def safe_get(data, *keys):
+    """Safely retrieve nested dictionary keys."""
+    temp = data
+    for key in keys:
+        if isinstance(temp, dict) and key in temp:
+            temp = temp[key]
+        else:
+            return None
+    return temp
+
 def load_data_from_url(url):
     try:
         response = requests.get(url)
@@ -39,20 +48,24 @@ def load_round_projects_data(round_id, chain_id):
     
     projects = []
     for project in data:
-        project_data = {
-            'projectId': project['projectId'],
-            'title': project['metadata']['application']['project']['title'],
-            'grantAddress': project['metadata']['application']['recipient'],
-            'status': project['status'],
-            'amountUSD': project['amountUSD'],
-            'votes': project['votes'],
-            'uniqueContributors': project['uniqueContributors'],
-            'description': project['metadata']['application']['project']['description']
-        }
-        projects.append(project_data)
+        title = safe_get(project, 'metadata', 'application', 'project', 'title')
+        grantAddress = safe_get(project, 'metadata', 'application', 'recipient')
+        description = safe_get(project, 'metadata', 'application', 'project', 'description')
         
-    df = pd.DataFrame(projects)
-    return df[df['status'] == 'APPROVED']
+        if title and grantAddress:  # Ensure required fields are available
+            project_data = {
+                'projectId': project['projectId'],
+                'title': title,
+                'grantAddress': grantAddress,
+                'status': project['status'],
+                'amountUSD': project['amountUSD'],
+                'votes': project['votes'],
+                'uniqueContributors': project['uniqueContributors'],
+                'description': description
+            }
+            projects.append(project_data)
+    return projects
+
     
 @st.cache_data(ttl=900)
 def load_round_votes_data(round_id, chain_id):
@@ -87,7 +100,9 @@ round_data = pd.read_csv('gg18_rounds.csv')
 dfv_list = []
 dfp_list = []
 for _,row in round_data.iterrows():
-    dfp = load_round_projects_data(str(row['round_id']), str(row['chain_id']))
+    #dfp = load_round_projects_data(str(row['round_id']), str(row['chain_id']))
+    projects_list = load_round_projects_data(str(row['round_id']), str(row['chain_id']))
+    dfp = pd.DataFrame(projects_list)
     dfv = load_round_votes_data(str(row['round_id']), str(row['chain_id']))
 
     dfp['round_id'] = row['round_id']
@@ -143,6 +158,14 @@ def get_contributions_by_round_chart(dfp, color_map):
     fig.update_layout(showlegend=False)
     return fig
 
+def get_contribution_time_series_chart(dfv):
+    dfv_count = dfv.groupby([dfv['timestamp'].dt.strftime('%m-%d-%Y %H')])['id'].nunique()
+    dfv_count.index = pd.to_datetime(dfv_count.index)
+    dfv_count = dfv_count.reindex(pd.date_range(start=dfv_count.index.min(), end=dfv_count.index.max(), freq='H'), fill_value=0)
+    fig = px.bar(dfv_count, x=dfv_count.index, y='id', labels={'id': 'Number of Contributions', 'index': 'Time'}, title='Number of Contributions over Time')
+    fig.update_layout()
+    return fig 
+
 st.subheader('Rounds Summary')
 
 col1, col2 = st.columns(2)
@@ -156,13 +179,7 @@ color_map = dict(zip(dfp['round_name'].unique(), px.colors.qualitative.Pastel))
 col1, col2 = st.columns(2)
 col1.plotly_chart(get_USD_by_round_chart(dfp, color_map))
 col2.plotly_chart(get_contributions_by_round_chart(dfp, color_map))
-
-dfv_count = dfv.groupby([dfv['timestamp'].dt.strftime('%m-%d-%Y %H')])['id'].nunique()
-dfv_count.index = pd.to_datetime(dfv_count.index)
-dfv_count = dfv_count.reindex(pd.date_range(start=dfv_count.index.min(), end=dfv_count.index.max(), freq='H'), fill_value=0)
-fig = px.bar(dfv_count, x=dfv_count.index, y='id', labels={'id': 'Number of Contributions', 'index': 'Time'}, title='Number of Contributions over Time')
-
-
+st.plotly_chart(get_contribution_time_series_chart(dfv), use_container_width=True) 
 
 
 st.title("Round Details")
@@ -202,7 +219,7 @@ df = pd.merge(dfv, dfp[['projectId', 'title']], how='left', left_on='projectId',
 df = df[df['amountUSD'] > .96]
 
 
-st.cache_data(ttl=900)
+#st.cache_data(ttl=900)
 def plot_network(df):
     grants_color = 'blue'
     voters_color = 'red'
