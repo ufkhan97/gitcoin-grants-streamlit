@@ -8,247 +8,207 @@ import plotly.express as px
 import locale
 
 st.set_page_config(
-    page_title="Gitcoin Beta Rounds",
+    page_title="Data - Gitcoin Grants Round 18",
     page_icon="📊",
     layout="wide",
 
 )
 
-st.title('Gitcoin Beta Rounds')
+st.title('Gitcoin Grants Round 18')
 st.write('The Gitcoin Grants Program is a quarterly initiative that empowers everyday believers to drive funding toward what they believe matters, with the impact of individual donations being magnified by the use of the [Quadratic Funding (QF)](https://wtfisqf.com) distribution mechanism.')
-st.write('You can donate to projects in the Beta Round from April 25th 2023 12:00 UTC to May 9th 2023 23:59 UTC.')
+st.write('You can donate to projects in the Round from August 15th 2023 12:00 UTC to August 29th 2023 23:59 UTC.')
 st.write('👉 Visit [grants.gitcoin.co](https://grants.gitcoin.co) to donate.')
 
-
-chain_id = '1'
-
-
-@st.cache_data(ttl=3000)
-def load_chain_data(chain_id):
-    chain_url = 'https://indexer-grants-stack.gitcoin.co/data/' + chain_id + '/rounds.json'
+# Helper function to load data from URLs
+@st.cache_data(ttl=900)
+def load_data_from_url(url):
     try:
-        response = requests.get(chain_url)
-        if response.status_code == 200:
-            chain_data = response.json()
-            rounds = []
-            for round in chain_data:
-                if round['metadata'] is not None:
-                    round_data = {
-                        'round_id': round['id'],
-                        'name': round['metadata']['name'],
-                        'amountUSD': round['amountUSD'],
-                        'votes': round['votes'],
-                        'description': round['metadata']['description'] if 'description' in round['metadata'] else '',
-                        'matchingFundsAvailable': round['metadata']['matchingFunds']['matchingFundsAvailable'] if 'matchingFunds' in round['metadata'] else '',
-                        'matchingCap': round['metadata']['matchingFunds']['matchingCap'] if 'matchingFunds' in round['metadata'] else '',
-                        'roundStartTime': datetime.datetime.utcfromtimestamp(int(round['roundStartTime'])), # create a datetime object from the timestamp in UTC time
-                        'roundEndTime': datetime.datetime.utcfromtimestamp(int(round['roundEndTime']))
-                    }
-                    rounds.append(round_data)
-            df = pd.DataFrame(rounds)
-            # Filter to beta rounds
-            start_time = datetime.datetime(2023, 4, 26, 15, 0, 0)
-            end_time = datetime.datetime(2023, 5, 9, 23, 59, 0)
-            # filter to only include rounds with votes > 0 and roundStartTime <= start_time and roundEndTime == end_time
-            df = df[(df['votes'] > 0) & (df['roundStartTime'] <= start_time) & (df['roundEndTime'] == end_time)]
-            return df 
-    except: 
-        return pd.DataFrame()
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad responses
+        return response.json()
+    except requests.RequestException as e:
+        st.warning(f"Failed to fetch data from {url}. Error: {e}")
+        return []
 
-@st.cache_data(ttl=3000)
-def load_round_projects_data(round_id):
-    # prepare the URLs
-    projects_url = 'https://indexer-grants-stack.gitcoin.co/data/1/rounds/' + round_id + '/projects.json'
+@st.cache_data(ttl=900)
+def load_round_projects_data(round_id, chain_id):
+    url = f'https://indexer-grants-stack.gitcoin.co/data/{chain_id}/rounds/{round_id}/applications.json'
+    data = load_data_from_url(url)
     
-    try:
-        # download the Projects JSON data from the URL
-        response = requests.get(projects_url)
-        if response.status_code == 200:
-            projects_data = response.json()
-
-        # Extract the relevant data from each project
-        projects = []
-        for project in projects_data:
-            project_data = {
-                'id': project['id'],
-                'title': project['metadata']['application']['project']['title'],
-                'description': project['metadata']['application']['project']['description'],
-                'status': project['status'],
-                'amountUSD': project['amountUSD'],
-                'votes': project['votes'],
-                'uniqueContributors': project['uniqueContributors']
-            }
-            projects.append(project_data)
-        # Create a DataFrame from the extracted data
-        dfp = pd.DataFrame(projects)
-        # Reorder the columns to match the desired order and rename column id to project_id
-        dfp = dfp[['id', 'title', 'description', 'status', 'amountUSD', 'votes', 'uniqueContributors']]
-        dfp = dfp.rename(columns={'id': 'project_id'})
-        # Filter to only approved projects
-        dfp = dfp[dfp['status'] == 'APPROVED']
-        return dfp
-    except:
-        return pd.DataFrame()
+    projects = []
+    for project in data:
+        project_data = {
+            'projectId': project['projectId'],
+            'title': project['metadata']['application']['project']['title'],
+            'grantAddress': project['metadata']['application']['recipient'],
+            'status': project['status'],
+            'amountUSD': project['amountUSD'],
+            'votes': project['votes'],
+            'uniqueContributors': project['uniqueContributors'],
+            'description': project['metadata']['application']['project']['description']
+        }
+        projects.append(project_data)
+        
+    df = pd.DataFrame(projects)
+    return df[df['status'] == 'APPROVED']
     
-@st.cache_data(ttl=3000)
-def load_round_votes_data(round_id):
-    votes_url = 'https://indexer-grants-stack.gitcoin.co/data/1/rounds/' + round_id + '/votes.json'
-    try:
-        # download the Votes JSON data from the URL
-        response = requests.get(votes_url)
-        if response.status_code == 200:
-            votes_data = response.json()
-        df = pd.DataFrame(votes_data)
-        return df
-    except:
-        return pd.DataFrame()
+@st.cache_data(ttl=900)
+def load_round_votes_data(round_id, chain_id):
+    url = f'https://indexer-grants-stack.gitcoin.co/data/{chain_id}/rounds/{round_id}/votes.json'
+    data = load_data_from_url(url)
+    return pd.DataFrame(data)
 
+@st.cache_data(ttl=900)
+def load_passport_data():
+    url = 'https://indexer-grants-stack.gitcoin.co/data/passport_scores.json'
+    data = load_data_from_url(url)
+    passports = [{
+        'address': passport['address'],
+        'last_score_timestamp': passport['last_score_timestamp'],
+        'status': passport['status'],
+        'rawScore': passport['evidence']['rawScore'] if 'evidence' in passport and passport['evidence'] is not None and 'rawScore' in passport['evidence'] else 0,
+    } for passport in data]
+    df = pd.DataFrame(passports)
+    df['last_score_timestamp'] = pd.to_datetime(df['last_score_timestamp'])
+    return df
+
+def compute_timestamp(row, starting_time, chain_starting_blocks):
+    # Get the starting block for the chain_id
+    starting_block = chain_starting_blocks[row['chain_id']]
+    # Calculate the timestamp based on the blockNumber and starting block
+    timestamp = starting_time + pd.to_timedelta((row['blockNumber'] - starting_block) * 2, unit='s')
+    return timestamp
 
 data_load_state = st.text('Loading data...')
-chain_data = load_chain_data(chain_id)
+round_data = pd.read_csv('gg18_rounds.csv')
+
+dfv_list = []
+dfp_list = []
+for _,row in round_data.iterrows():
+    dfp = load_round_projects_data(str(row['round_id']), str(row['chain_id']))
+    dfv = load_round_votes_data(str(row['round_id']), str(row['chain_id']))
+
+    dfp['round_id'] = row['round_id']
+    dfp['chain_id'] = row['chain_id']
+    dfp['round_name'] = row['round_name']
+    
+    dfv['round_id'] = row['round_id']
+    dfv['chain_id'] = row['chain_id']
+    dfv['round_name'] = row['round_name']
+
+    #st.write("Round " + row[1]['round_name'] + " loaded with " + str(len(dfv)) + " votes.")
+    dfv_list.append(dfv)
+    dfp_list.append(dfp)
+
+dfv = pd.concat(dfv_list)
+dfp = pd.concat(dfp_list)
+
+token_map = {
+    "0x0000000000000000000000000000000000000000": "ETH",
+    "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1": "DAI",
+}
+dfv["token_symbol"] = dfv["token"].map(token_map)
+
+
+chain_starting_blocks = dfv.groupby('chain_id')['blockNumber'].min().to_dict()
+starting_time = pd.to_datetime('2023/08/15 12:00 PM UTC')
+dfv['timestamp'] = dfv.apply(compute_timestamp, args=(starting_time, chain_starting_blocks), axis=1)
+
+# Check the dfv DataFrame
+dfv.head()
 data_load_state.text("")
 
-st.subheader('Beta Rounds Summary')
+st.subheader('Rounds Summary')
 # create two-column metrics. One with the sum of votes and the other with the amountUSD
 col1, col2, col3 = st.columns(3)
-col1.metric("Total Votes", '{:,.0f}'.format(chain_data['votes'].sum()))
-col2.metric('Total Contributed', '${:,.2f}'.format(chain_data['amountUSD'].sum()))
-col3.metric('Total Rounds', '{:,.0f}'.format(chain_data['round_id'].count()))
+col1.metric("Total Votes", '{:,.0f}'.format(dfp['votes'].sum()))
+col2.metric('Total Contributed', '${:,.2f}'.format(dfp['amountUSD'].sum()))
+col3.metric('Core Rounds', '{:,.0f}'.format(dfp['round_id'].nunique()))
 
-
-# filter chain_data to name, votes, amountUSD
-
-
-def get_USD_by_round_chart(chain_data, color_map):
-    grouped_data = chain_data.groupby('name')['amountUSD'].sum().reset_index().sort_values('amountUSD', ascending=True)
-    data = [go.Bar(
-        x=grouped_data['amountUSD'], 
-        y=grouped_data['name'],
-        marker_color=grouped_data['name'].map(color_map), # map each round to a specific color
-        orientation='h'
-    )]
-    layout = go.Layout(
-        title='Crowdfunded (in $) by Round',
-        xaxis=dict(title='Dollars'),
-        yaxis=dict(title='Round')
-    )
-    fig = go.Figure(data=data, layout=layout)
+def get_USD_by_round_chart(dfp, color_map):
+    grouped_data = dfp.groupby('round_name')['amountUSD'].sum().reset_index().sort_values('amountUSD', ascending=False)
+    fig = px.bar(grouped_data, x='round_name', y='amountUSD', title='Crowdfunded (in $) by Round', 
+                 color='round_name', labels={'amountUSD': 'Crowdfunded Amount ($)', 'round_name': 'Round Name'}, 
+                 color_discrete_map=color_map)
+    fig.update_layout(showlegend=False)
     return fig
 
-def get_contributions_by_round_bar_chart(chain_data, color_map):
-    grouped_data = chain_data.groupby('name')['votes'].sum().reset_index().sort_values('votes', ascending=True)
-    data = [go.Bar(
-        x=grouped_data['votes'], 
-        y=grouped_data['name'],
-        marker_color=grouped_data['name'].map(color_map), # map each round to a specific color
-        orientation='h'
-    )]
-    layout = go.Layout(
-        title='Total Contributions (#) by Round',
-        xaxis=dict(title='Number'),
-        yaxis=dict(title='Round')
-    )
-    fig = go.Figure(data=data, layout=layout)
+def get_contributions_by_round_chart(dfp, color_map):
+    grouped_data = dfp.groupby('round_name')['votes'].sum().reset_index().sort_values('votes', ascending=False)
+    fig = px.bar(grouped_data, x='round_name', y='votes', title='Total Contributions (#) by Round', 
+                 color='round_name', labels={'votes': 'Number of Contributions', 'round_name': 'Round Name'}, 
+                 color_discrete_map=color_map)
+    fig.update_layout(showlegend=False)
     return fig
 
-def create_color_map(chain_data):
-    unique_rounds = chain_data['name'].unique()
-    color_list = ['#4C72B0', '#DD8452', '#55A868', '#C44E52', '#8172B2', '#937860', '#DA8BC3', '#8C8C8C', '#CCB974', '#64B5CD', '#4E3D3D', '#AEBD38', '#AD6B5E', '#1F78B4', '#B2DF8A'] # manually specified list of colors
-    color_map = dict(zip(unique_rounds, color_list[:len(unique_rounds)])) # map each round to a specific color
-    return color_map
+def create_token_comparison_pie_chart(dfv):
+    # Group by token_symbol and sum the amountUSD
+    grouped_data = dfv.groupby('token_symbol')['amountUSD'].sum().reset_index()
+    fig = px.pie(grouped_data, names='token_symbol', values='amountUSD', title='ETH vs DAI Contributions (in $)', hole=0.3)
+    for trace in fig.data:
+        trace.hoverinfo = 'none'
+    return fig
 
-# create color map
-color_map = create_color_map(chain_data)
-
-# create two-column charts. One with the sum of votes and the other with the amountUSD
+color_map = dict(zip(dfp['round_name'].unique(), px.colors.qualitative.Pastel))
 col1, col2 = st.columns(2)
-fig = get_USD_by_round_chart(chain_data, color_map)
-col1.plotly_chart(fig, use_container_width=True)
-fig = get_contributions_by_round_bar_chart(chain_data, color_map)
-col2.plotly_chart(fig, use_container_width=True)
-chain_data_display = chain_data[['name', 'votes', 'amountUSD']]
+col1.plotly_chart(get_USD_by_round_chart(dfp, color_map))
+col2.plotly_chart(get_contributions_by_round_chart(dfp, color_map))
+#st.plotly_chart(create_token_comparison_pie_chart(dfv))
 
-st.subheader("Round Details")
+dfv_count = dfv.groupby([dfv['timestamp'].dt.strftime('%m-%d-%Y %H')])['id'].nunique()
+dfv_count.index = pd.to_datetime(dfv_count.index)
+dfv_count = dfv_count.reindex(pd.date_range(start=dfv_count.index.min(), end=dfv_count.index.max(), freq='H'), fill_value=0)
+fig = px.bar(dfv_count, x=dfv_count.index, y='id', labels={'id': 'Number of Contributions', 'index': 'Time'}, title='Number of Contributions over Time')
+st.plotly_chart(fig, use_container_width=True)
+
+
+
+st.title("Round Details")
 # selectbox to select the round
 option = st.selectbox(
     'Select Round',
-    chain_data['name'])
+    dfv['round_name'].unique())
 
-data_load_state = st.text('Loading data...')
-# load round data for the option selected by looking up the round id with that name in the chain_data df
-round_id = chain_data[chain_data['name'] == option]['round_id'].values[0]
-dfp = load_round_projects_data(round_id)
-dfv = load_round_votes_data(round_id)
-data_load_state.text("")
-
-dfv = pd.merge(dfv, dfp[['project_id', 'title', 'status']], how='left', left_on='projectId', right_on='project_id')
-
-col1, col2 = st.columns(2)
-total_usd = dfv['amountUSD'].sum()
+dfv = dfv[dfv['round_name'] == option]
+dfp = dfp[dfp['round_name'] == option]
+col1, col2, col3 = st.columns(3)
+total_usd = dfp['amountUSD'].sum()
 col1.metric('Total USD', '${:,.2f}'.format(total_usd))
-total_donations = (dfv['amountUSD'] > 0).sum()
-col1.metric('Total Donations',  '{:,.0f}'.format(total_donations))
+total_donations = (dfp['amountUSD'] > 0).sum()
+col2.metric('Total Donations',  '{:,.0f}'.format(total_donations))
+col3.metric('Total Projects',  '{:,.0f}'.format(len(dfp)))
+
 total_by_donor = dfv.groupby('voter')['amountUSD'].sum()
 nonZero_donors = (total_by_donor > 0).sum()
-col1.metric('Total Donors',  '{:,.0f}'.format(nonZero_donors))
-
-col1.metric('Total Projects',  '{:,.0f}'.format(len(dfp)))
-
-col2.write('## Projects')
-# write projects title, votes, amount USD, unique contributors
-col2.write(dfp[['title', 'votes', 'amountUSD', 'uniqueContributors']])
+#col4.metric('Total Donors',  '{:,.0f}'.format(nonZero_donors))
 
 
-def get_grants_bar_chart(votes_data):
-    grouped_data = votes_data.groupby('title')['amountUSD'].sum().reset_index().sort_values('amountUSD', ascending=True)
 
-    data = [go.Bar(
-        x=grouped_data['amountUSD'], 
-        y=grouped_data['title'],
-        marker_color='blue',
-        orientation='h'
-    )]
-    layout = go.Layout(
-        title='Total Contributions (in $) by Grant',
-        xaxis= { 'title':'Total Contributions ($)'},
-        yaxis={'title':'Grant'},
-        height=800
+def create_treemap(dfp):
+    #dfp['title'] = dfp['title'].str[:30]
+    # truncate everything after the first - or :
+    #dfp['title'] = dfp['title'].str.split(':').str[0]
+    #dfp['title'] = dfp['title'].str.split('\'').str[0]
 
-    )
-    fig = go.Figure(data=data, layout=layout)
+    fig = px.treemap(dfp, path=['title'], values='amountUSD', hover_data=['title'])
+    fig.update_traces(texttemplate='%{label}<br>$%{value:.3s}', textposition='middle center', textfont_size=20)
+    fig.update_layout(font=dict(size=20))
+    # set window height
+    fig.update_layout(height=540)
     return fig
 
+st.plotly_chart(create_treemap(dfp.copy()), use_container_width=True)
+st.write('## Projects')
+# write projects title, votes, amount USD, unique contributors
+df_display = dfp[['title', 'votes',  'amountUSD',]].sort_values('votes', ascending=False)
+df_display.columns = ['Title', 'Votes',  'Amount (USD)',]
+df_display['Amount (USD)'] = df_display['Amount (USD)'].apply(lambda x: '${:,.2f}'.format(x))
+df_display['Votes'] = df_display['Votes'].apply(lambda x: '{:,.0f}'.format(x))
+df_display = df_display.reset_index(drop=True)
+st.dataframe(df_display, use_container_width=True, height=500)
 
-# display the chart
-# fig_grants = get_grants_bar_chart(dfv)
-# st.plotly_chart(fig_grants, use_container_width=False)
 
 
-starting_blockNumber = 17123133
-ending_blockNumber = dfv['blockNumber'].max()
-starting_blockTime = datetime.datetime(2023, 4, 25, 12, 13, 35)
 
-def create_block_times(starting_blockNumber, ending_blockNumber, starting_blockTime):
-    # Create an array of 107,000 blockNumbers starting from the starting_blockNumber and incrementing by 1 each time
-    blocks = np.arange(starting_blockNumber, ending_blockNumber, 1)
-    # create a new dataframe with the blocks array
-    df = pd.DataFrame(blocks)
-    df.columns = ['blockNumber']
-    # create a new column called utc_time and use the starting_blockTime as the value for the first starting_blockNumber
-    df['utc_time'] = starting_blockTime
-    # as the blockNumber increases by 1, add 12.133 seconds to the utc_time
-    df['utc_time'] = pd.to_datetime(df['utc_time']) + pd.to_timedelta(12.13*(df['blockNumber'] - starting_blockNumber), unit='s')
-    return df
 
-dfb = create_block_times(starting_blockNumber, ending_blockNumber, starting_blockTime)
-# merge the block times with the votes data
-dfv = pd.merge(dfv, dfb, how='left', on='blockNumber')
-# graph of the amountUSD grouped by utc_time hour
-#st.subheader('Amount USD by Hour and day of utc_time')
-dfv_count = dfv.groupby([dfv['utc_time'].dt.strftime('%m-%d-%Y %H')])['id'].nunique()
-# set the index to be the utc_time column
-dfv_count.index = pd.to_datetime(dfv_count.index)
-# fill in missing hours with 0
-dfv_count = dfv_count.reindex(pd.date_range(start=dfv_count.index.min(), end=dfv_count.index.max(), freq='H'), fill_value=0)
-fig = px.bar(dfv_count, x=dfv_count.index, y='id', labels={'id': 'Number of Votes'}, title='Number of Contributions over Time')
-st.plotly_chart(fig, use_container_width=True)
+
