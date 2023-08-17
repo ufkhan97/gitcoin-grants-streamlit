@@ -18,7 +18,7 @@ st.set_page_config(
 
 st.title('Gitcoin Grants Round 18')
 st.write('The Gitcoin Grants Program is a quarterly initiative that empowers everyday believers to drive funding toward what they believe matters, with the impact of individual donations being magnified by the use of the [Quadratic Funding (QF)](https://wtfisqf.com) distribution mechanism.')
-st.write('You can donate to projects in the Round from August 15th 2023 12:00 UTC to August 29th 2023 23:59 UTC.')
+st.write('You can donate to projects in the Round from August 15th 2023 12:00 UTC to August 29th 2023 12:00 UTC.')
 st.write('👉 Visit [grants.gitcoin.co](https://grants.gitcoin.co) to donate.')
 
 # Helper function to load data from URLs
