@@ -326,9 +326,9 @@ def plot_network(df):
                             
     return fig
 
-data_load_state = st.text('Loading network...')
-st.plotly_chart(plot_network(df), use_container_width=True)
-data_load_state.text("")
+#data_load_state = st.text('Loading network...')
+#st.plotly_chart(plot_network(df), use_container_width=True)
+#data_load_state.text("")
 
 st.write('## Projects')
 # write projects title, votes, amount USD, unique contributors
