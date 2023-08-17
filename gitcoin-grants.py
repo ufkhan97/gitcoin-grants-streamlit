@@ -146,10 +146,10 @@ def get_contributions_by_round_chart(dfp, color_map):
 st.subheader('Rounds Summary')
 
 col1, col2 = st.columns(2)
-col1.metric("Total Votes", '{:,.0f}'.format(dfp['votes'].sum()))
 col1.metric('Total Contributed', '${:,.2f}'.format(dfp['amountUSD'].sum()))
-col1.metric('Total Rounds', '{:,.0f}'.format(dfp['round_id'].nunique()))
+col1.metric("Total Votes", '{:,.0f}'.format(dfp['votes'].sum()))
 col1.metric('Unique Contributors', '{:,.0f}'.format(dfv['voter'].nunique()))
+col1.metric('Total Rounds', '{:,.0f}'.format(dfp['round_id'].nunique()))
 col2.plotly_chart(create_token_comparison_pie_chart(dfv))
 
 color_map = dict(zip(dfp['round_name'].unique(), px.colors.qualitative.Pastel))
