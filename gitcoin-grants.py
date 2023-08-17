@@ -87,6 +87,7 @@ def load_passport_data():
     df['last_score_timestamp'] = pd.to_datetime(df['last_score_timestamp'])
     return df
 
+@st.cache_data(ttl=900)
 def compute_timestamp(row, starting_time, chain_starting_blocks):
     # Get the starting block for the chain_id
     starting_block = chain_starting_blocks[row['chain_id']]
@@ -219,7 +220,6 @@ df = pd.merge(dfv, dfp[['projectId', 'title']], how='left', left_on='projectId',
 df = df[df['amountUSD'] > .96]
 
 
-#st.cache_data(ttl=900)
 def plot_network(df):
     grants_color = 'blue'
     voters_color = 'red'
