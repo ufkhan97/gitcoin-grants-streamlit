@@ -2,3 +2,5 @@ plotly
 streamlit
 pandas
 numpy
+networkx
+scipy
