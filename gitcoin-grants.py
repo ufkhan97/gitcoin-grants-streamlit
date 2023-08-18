@@ -16,7 +16,7 @@ st.set_page_config(
 
 )
 
-st.title('Gitcoin Grants Round 18')
+st.title('Gitcoin Grants 18')
 st.write('The Gitcoin Grants Program is a quarterly initiative that empowers everyday believers to drive funding toward what they believe matters, with the impact of individual donations being magnified by the use of the [Quadratic Funding (QF)](https://wtfisqf.com) distribution mechanism.')
 st.write('You can donate to projects in the Round from August 15th 2023 12:00 UTC to August 29th 2023 12:00 UTC.')
 st.write('👉 Visit [grants.gitcoin.co](https://grants.gitcoin.co) to donate.')
@@ -338,3 +338,4 @@ df_display['Amount (USD)'] = df_display['Amount (USD)'].apply(lambda x: '${:,.2f
 df_display['Votes'] = df_display['Votes'].apply(lambda x: '{:,.0f}'.format(x))
 df_display = df_display.reset_index(drop=True)
 st.dataframe(df_display, use_container_width=True, height=500)
+
