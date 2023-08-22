@@ -4,6 +4,7 @@ st.set_page_config(
     page_title="Gitcoin Grants Round 18",
     page_icon="📊",
     layout="wide",
+    
 
 )
 # DEPLOYED ON STREAMLIT 
