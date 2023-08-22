@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide",
 
 )
-
+st.title("THIS THE APP")
 st.title('Gitcoin Grants 18')
 st.write('The Gitcoin Grants Program is a quarterly initiative that empowers everyday believers to drive funding toward what they believe matters, with the impact of individual donations being magnified by the use of the [Quadratic Funding (QF)](https://wtfisqf.com) distribution mechanism.')
 st.write('You can donate to projects in the Round from August 15th 2023 12:00 UTC to August 29th 2023 12:00 UTC.')
