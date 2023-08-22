@@ -1,1 +1,1 @@
-web: sh setup.sh && streamlit run gitcoin-grants.py
+web: streamlit run gitcoin-grants.py

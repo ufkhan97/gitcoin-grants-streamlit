@@ -167,6 +167,8 @@ def get_contribution_time_series_chart(dfv):
     fig.update_layout()
     return fig 
 
+
+
 st.subheader('Rounds Summary')
 
 col1, col2 = st.columns(2)
